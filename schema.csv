@@ -1,0 +1,4 @@
+field name,width,datatype
+author_name,10,CHAR
+is_alive,1,BOOLEAN
+books_authored_count,2,INTEGER
