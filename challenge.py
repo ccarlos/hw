@@ -11,7 +11,6 @@ class UnknownDataTypeException(Exception):
 class DataLoader:
     def __init__(self, table_name='schema', drop_table=False):
         self.table_name = table_name
-        # todo: run drop table command inside _create_table if True
         self.drop_table = drop_table
         self.data_type_mapping = {
             'INT': 'INTEGER',
@@ -52,6 +51,10 @@ class DataLoader:
         return data_list
 
     def _create_table(self, data_list):
+        # check if we want to drop table
+        if self.drop_table:
+            self.c.executescript('''DROP TABLE IF EXISTS %s'''
+                                 % self.table_name)
         table_create_placeholder = '''CREATE TABLE IF NOT EXISTS %s (%s);'''
         processed_data_list = self._process_data_type_list(data_list)
         table_create_statement = table_create_placeholder % \
