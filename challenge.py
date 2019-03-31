@@ -7,7 +7,9 @@ class UnknownDataTypeException(Exception):
 
 
 class DataLoader:
-    def __init__(self):
+    def __init__(self, table_name='schema', drop_table=False):
+        self.table_name = table_name
+        self.drop_table = drop_table
         self.data_type_mapping = {
             'INT': 'INTEGER',
             'INTEGER': 'INTEGER',
@@ -19,9 +21,6 @@ class DataLoader:
             'BOOLEAN': 'NUMERIC'
         }
 
-    def _create_table(self, table_name='schema', schema=''):
-        table_create_statement = '''CREATE TABLE IF NOT EXISTS %s (%s)'''
-
     def _process_schema(self, filename='schema.csv'):
         # read in csv file and match it against the data_type_mapping
         data_list = []
@@ -32,34 +31,54 @@ class DataLoader:
                 if row['datatype'].upper() not in data_type_keys:
                     raise UnknownDataTypeException(
                         "Data type not supported: %s" % row['datatype'])
-                data_list.append((row['field name'], row['width'], row['datatype']))
+                data_list.append(
+                    (row['field name'], row['width'],
+                     self.data_type_mapping[row['datatype'].upper()]))
 
         return data_list
 
-    def _schema_parser(self):
-        """Create a mapping of possible data types => sqlite"""
-        pass
+    def _create_table(self, data_list):
+        table_create_placeholder = '''CREATE TABLE IF NOT EXISTS %s (%s);'''
+        processed_data_list = self._process_data_type_list(data_list)
+        table_create_statement = table_create_placeholder % \
+                                 (self.table_name, processed_data_list)
+        # run command to create table
+        print(table_create_statement)
 
-def store():
-    pass
+    def _process_data_type_list(self, data_list):
+        """Not all databases will use the field width column"""
+        return (",".join([field_name + " " + data_type
+                          for field_name, _, data_type in data_list]))
+
 
 
 def main():
     """ Process Command Line Arguments """
-    table_name = 'schema'
-    parser = argparse.ArgumentParser(description='Create DB table and store data')
+    parser = argparse.ArgumentParser(
+        description='Create DB table and load data')
     parser.add_argument('-d', '--droptable', action='store_true',
                         help='Drop existing table')
     parser.add_argument('--tablename', help='Table name used to create schema')
-    # parser.add_argument('--directory', help='Specify directory where to look for files')
+
+    # todo:
+    # parser.add_argument('--directory',
+    # help='Specify directory where to look for files')
 
     args = parser.parse_args()
-    print(args.tablename)
-    print(args.droptable)
+
+    table_name = 'schema'
+    drop_table = False
+    if args.tablename:
+        table_name = args.tablename
+    if args.droptable:
+        drop_table = True
+
     try:
-        dl = DataLoader()
-        dl._process_schema('schema.csv')
+        dl = DataLoader(table_name=table_name, drop_table=drop_table)
+        data_list = dl._process_schema('schema.csv')
+        dl._create_table(data_list)
     except UnknownDataTypeException as e:
         print("An exception occurred: %s" % e)
+
 
 main()
