@@ -20,6 +20,7 @@ class DataLoader:
 
             'BOOLEAN': 'NUMERIC'
         }
+        self.field_names = []
 
     def _process_schema(self, filename='schema.csv'):
         # read in csv file and match it against the data_type_mapping
@@ -34,6 +35,7 @@ class DataLoader:
                 data_list.append(
                     (row['field name'], row['width'],
                      self.data_type_mapping[row['datatype'].upper()]))
+                self.field_names.append(row['field name'])
 
         return data_list
 
@@ -50,6 +52,20 @@ class DataLoader:
         return (",".join([field_name + " " + data_type
                           for field_name, _, data_type in data_list]))
 
+    def _load_data(self, filename='data.csv'):
+        data_list = []
+        with open(filename, mode='r') as csv_file:
+            csv_reader = csv.DictReader(csv_file, fieldnames=self.field_names)
+            for row in csv_reader:
+                data_list.append(','.join(row.values()))
+        return ["(" + data + ")" for data in data_list]
+
+    def _load_table(self, data_load):
+        table_load_placeholder = """INSERT INTO %s (%s) VALUES %s;"""
+        table_load_statement = table_load_placeholder % \
+            (self.table_name, ",".join(self.field_names), ",".join(data_load))
+        # run command to create table
+        print(table_load_statement)
 
 
 def main():
@@ -77,6 +93,11 @@ def main():
         dl = DataLoader(table_name=table_name, drop_table=drop_table)
         data_list = dl._process_schema('schema.csv')
         dl._create_table(data_list)
+
+        data_load = dl._load_data('data.csv')
+        dl._load_table(data_load)
+
+        
     except UnknownDataTypeException as e:
         print("An exception occurred: %s" % e)
 
