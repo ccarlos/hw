@@ -108,6 +108,7 @@ class DataLoader:
         # for row in self.c.execute("select * from %s" % self.table_name):
         #     print(row)
 
+
 def main():
     """ Process Command Line Arguments """
     parser = argparse.ArgumentParser(
